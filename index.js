@@ -23,6 +23,7 @@ app.post("/claude", async (req, res) => {
       })
     });
 
+    // Handle non-200 responses
     if (!response.ok) {
       const text = await response.text();
       console.error("Claude API error:", text);
@@ -32,11 +33,24 @@ app.post("/claude", async (req, res) => {
     const data = await response.json();
     console.log("Full Claude response:", data);
 
-    const replyText = data?.content?.[0]?.text || data?.completion || "No reply from Claude";
+    // SAFE ACCESS: never crash
+    let replyText = "No reply from Claude.";
+    if (Array.isArray(data?.content) && data.content.length > 0 && data.content[0]?.text) {
+      replyText = data.content[0].text;
+    } else if (data?.completion) {
+      replyText = data.completion;
+    }
+
+    console.log("Claude reply:", replyText);
     res.json({ reply: replyText });
 
   } catch (err) {
     console.error("Server error:", err);
     res.status(500).json({ error: "Server error" });
   }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
