@@ -7,35 +7,45 @@ app.use(express.json());
 app.post("/claude", async (req, res) => {
   try {
     const userInput = req.body.userInput;
-    if (!userInput) return res.status(400).json({ error: "No input provided" });
+    if (!userInput) {
+      return res.status(400).json({ error: "No input provided" });
+    }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
+        "Content-Type": "application/json",
         "x-api-key": process.env.CLAUDE_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json"
+        "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5-20250929",
+        model: "claude-3-sonnet-20240229",
         max_tokens: 800,
-        messages: [{ role: "user", content: userInput }]
+        messages: [
+          { role: "user", content: userInput }
+        ]
       })
     });
 
     if (!response.ok) {
-      const text = await response.text();
-      console.error("Claude API error:", text);
-      return res.status(response.status).send(text);
+      const errorText = await response.text();
+      console.error("Claude API error:", errorText);
+      return res.status(response.status).send(errorText);
     }
 
     const data = await response.json();
-    console.log("Full Claude response:", data);
+    console.log("Full Claude response:", JSON.stringify(data, null, 2));
 
-    // Access the correct key
-    const replyText = data?.completion || "No reply from Claude";
-    console.log("Claude reply:", replyText);
-    res.json({ reply: replyText });
+    let reply = "No reply from Claude";
+
+    if (Array.isArray(data.content)) {
+      reply = data.content
+        .filter(block => block.type === "text")
+        .map(block => block.text)
+        .join("\n");
+    }
+
+    res.json({ reply });
 
   } catch (err) {
     console.error("Server error:", err);
@@ -43,7 +53,7 @@ app.post("/claude", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
