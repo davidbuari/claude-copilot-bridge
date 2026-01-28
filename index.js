@@ -17,7 +17,7 @@ app.post("/claude", async (req, res) => {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-3-100k",
         max_tokens: 800,
         messages: [{ role: "user", content: userInput }]
       })
